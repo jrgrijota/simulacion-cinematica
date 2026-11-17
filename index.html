@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráficas del Movimiento — Simulación Interactiva</title>
+    <!-- Página pública de esta simulación: simulaciencia.es. Esta dirección (github.io) es la que carga la web dentro de un iframe; la canónica evita que los buscadores la indexen como página aparte. -->
+    <meta name="description" content="Un coche o una persona se mueve por una pista mientras se dibujan en vivo sus gráficas posición-tiempo, velocidad-tiempo y aceleración-tiempo. MRU y MRUA, con retos de gráficas.">
+    <link rel="canonical" id="canonical" href="https://simulaciencia.es/simulaciones/cinematica/">
+    <script>(function(){var d={"en":"en/simulations/","ca":"ca/simulacions/","eu":"eu/simulazioak/","gl":"gl/simulacions/"}[new URLSearchParams(location.search).get('lang')];if(d)document.getElementById('canonical').href='https://simulaciencia.es/'+d+'cinematica/';})();</script>
+    <script src="js/i18n-en.js"></script>
+    <script src="js/i18n-ca.js"></script>
+    <script src="js/i18n-eu.js"></script>
+    <script src="js/i18n-gl.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/vendor/p5.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="js/estadisticas.js" data-sim="sim-cinematica"></script>
+    <script src="js/sello.js" data-contenedor="main.simulation-panel" data-esquina="bl"></script>
+</head>
+<body class="mode-explorar tipo-mru">
+    <div class="app-container">
+
+        <!-- ── PANEL DE CONTROL ──────────────────────────────────── -->
+        <aside class="control-panel">
+
+            <header>
+                <div class="header-top">
+                    <svg class="header-icon-svg" width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <!-- Ejes -->
+                        <path d="M6 4 V36 H39" stroke="#585858" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+                        <!-- Gráfica x‑t por tramos -->
+                        <path d="M7 33 L17 21 L25 21 L37 7" stroke="#00c8ff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <!-- Instante actual -->
+                        <line x1="25" y1="5" x2="25" y2="36" stroke="#ffd24a" stroke-width="1.2" stroke-dasharray="2 2"/>
+                        <circle cx="25" cy="21" r="2.6" fill="#55cc80"/>
+                        <!-- Coche en la pista -->
+                        <rect x="11" y="37.6" width="12" height="3.2" rx="1.2" fill="#55cc80"/>
+                    </svg>
+                    <h1>Gráficas del Movimiento</h1>
+                </div>
+                <p class="subtitle">MRU y MRUA</p>
+                <details class="header-details">
+                    <summary>¿Qué se ve en las gráficas?</summary>
+                    <div class="header-details-body">
+                        <p class="section-note" data-i18n="intro">
+                            El móvil avanza por una pista recta y, a la vez, se dibujan sus gráficas.
+                            Las gráficas <strong>no son el camino</strong> que sigue el móvil: cuentan cómo
+                            cambian su posición, su velocidad y su aceleración con el tiempo.
+                        </p>
+                        <div class="quick-rule">
+                            <span class="qr-x" data-i18n="qr-x">x‑t: la <strong>pendiente</strong> es la velocidad</span>
+                            <span class="qr-v" data-i18n="qr-v">v‑t: la pendiente es la aceleración y el <strong>área</strong>, el desplazamiento</span>
+                            <span class="qr-signo" data-i18n="qr-signo">El <strong>signo</strong> dice el sentido respecto al eje, no si frena</span>
+                        </div>
+                    </div>
+                </details>
+            </header>
+
+            <hr class="divider">
+
+            <!-- SELECTOR DE MODO -->
+            <div class="mode-switch mode-switch-3" role="tablist">
+                <button id="mode-explorar" type="button" class="mode-btn active" role="tab" aria-selected="true">
+                    Explorar
+                    <span class="mode-sub">MRU · MRUA</span>
+                </button>
+                <button id="mode-retos" type="button" class="mode-btn" role="tab" aria-selected="false">
+                    Retos
+                    <span class="mode-sub">10 gráficas</span>
+                </button>
+                <button id="mode-mano" type="button" class="mode-btn" role="tab" aria-selected="false">
+                    Muévelo tú
+                    <span class="mode-sub">Con el ratón o el dedo</span>
+                </button>
+            </div>
+
+            <hr class="divider">
+
+            <!-- ═══ MODO EXPLORAR ═══ -->
+            <section class="control-group only-explorar">
+                <h2>Movimiento</h2>
+                <div class="input-wrapper">
+                    <span class="field-label" id="lbl-tipo">Tipo de movimiento</span>
+                    <div class="seg-control seg-2" role="radiogroup" aria-labelledby="lbl-tipo">
+                        <button type="button" id="tipo-mru" class="seg-btn seg-txt active" role="radio" aria-checked="true" title="Movimiento rectilíneo uniforme">MRU</button>
+                        <button type="button" id="tipo-mrua" class="seg-btn seg-txt" role="radio" aria-checked="false" title="Movimiento rectilíneo uniformemente acelerado">MRUA</button>
+                    </div>
+                    <p class="field-hint only-mru" id="hint-mru">Velocidad constante: recorre los mismos metros en cada segundo.</p>
+                    <p class="field-hint only-mrua" id="hint-mrua">Aceleración constante: la velocidad cambia lo mismo en cada segundo.</p>
+                </div>
+
+                <div class="input-wrapper">
+                    <div class="label-container">
+                        <label for="slider-x0">Posición inicial <span class="label-hint">(x₀)</span></label>
+                        <span id="val-x0" class="value-badge mag-x">0 m</span>
+                    </div>
+                    <input type="range" id="slider-x0" min="-20" max="100" value="0" step="1">
+                    <div class="slider-bounds"><span>−20 m</span><span>100 m</span></div>
+                </div>
+
+                <div class="input-wrapper">
+                    <div class="label-container">
+                        <label for="slider-v0"><span class="only-mru">Velocidad</span><span class="only-mrua">Velocidad inicial</span> <span class="label-hint only-mrua">(v₀)</span><span class="label-hint only-mru">(v)</span></label>
+                        <span id="val-v0" class="value-badge mag-v">4 m/s</span>
+                    </div>
+                    <input type="range" id="slider-v0" min="-10" max="10" value="4" step="0.5">
+                    <div class="slider-bounds"><span>−10 m/s</span><span>10 m/s</span></div>
+                    <p id="kmh-v0" class="field-hint"></p>
+                </div>
+
+                <div class="input-wrapper only-mrua">
+                    <div class="label-container">
+                        <label for="slider-a">Aceleración <span class="label-hint">(a)</span></label>
+                        <span id="val-a" class="value-badge mag-a">1 m/s²</span>
+                    </div>
+                    <input type="range" id="slider-a" min="-3" max="3" value="1" step="0.1">
+                    <div class="slider-bounds"><span>−3 m/s²</span><span>3 m/s²</span></div>
+                </div>
+
+                <label class="check-row only-mrua" for="check-para">
+                    <input type="checkbox" id="check-para">
+                    <span>Se para al llegar a v = 0 (frena sin dar marcha atrás)</span>
+                </label>
+
+                <div class="input-wrapper">
+                    <label for="select-ejemplo">Ejemplos de la vida diaria</label>
+                    <select id="select-ejemplo" class="custom-select">
+                        <option value="">Elige un ejemplo…</option>
+                        <optgroup label="MRU">
+                            <option value="paseo">Persona que pasea (1,5 m/s)</option>
+                            <option value="corre">Persona que corre (4 m/s)</option>
+                            <option value="marcha">Coche que da marcha atrás (−2 m/s)</option>
+                            <option value="calle">Coche por una calle (8,5 m/s ≈ 30 km/h)</option>
+                            <option value="vuelve">Persona que vuelve hacia el origen</option>
+                        </optgroup>
+                        <optgroup label="MRUA">
+                            <option value="arranca">Coche que arranca despacio</option>
+                            <option value="semaforo">Coche que frena en un semáforo</option>
+                            <option value="sube">Avanza frenando y vuelve</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </section>
+
+            <!-- ═══ MODO RETOS ═══ -->
+            <section class="control-group only-retos">
+                <h2>Reto</h2>
+                <div class="input-wrapper">
+                    <label for="select-reto">Elige un reto</label>
+                    <select id="select-reto" class="custom-select"></select>
+                </div>
+                <div class="card reto-card" id="reto-card">
+                    <p class="reto-meta" id="reto-meta"></p>
+                    <p class="reto-historia" id="reto-historia"></p>
+                    <p class="reto-dato" id="reto-dato"></p>
+                </div>
+            </section>
+
+            <hr class="divider only-retos">
+
+            <section class="control-group only-retos">
+                <h2>Tu movimiento</h2>
+                <div class="input-wrapper only-libre">
+                    <span class="field-label" id="lbl-libre-tipo">Tipo de movimiento</span>
+                    <div class="seg-control seg-2" role="radiogroup" aria-labelledby="lbl-libre-tipo">
+                        <button type="button" id="libre-mru" class="seg-btn seg-txt active" role="radio" aria-checked="true" title="Movimiento rectilíneo uniforme">MRU</button>
+                        <button type="button" id="libre-mrua" class="seg-btn seg-txt" role="radio" aria-checked="false" title="Movimiento rectilíneo uniformemente acelerado">MRUA</button>
+                    </div>
+                </div>
+                <div class="num-row">
+                    <div class="num-field">
+                        <label for="num-x0">Posición inicial <span class="label-hint">(x₀)</span></label>
+                        <div class="num-box"><input type="number" id="num-x0" class="num-input" min="-20" max="100" step="1" value="0" inputmode="decimal"><span class="num-unit">m</span></div>
+                    </div>
+                    <div class="num-field only-rmrua">
+                        <label for="num-v0">Velocidad inicial <span class="label-hint">(v₀)</span></label>
+                        <div class="num-box"><input type="number" id="num-v0" class="num-input" min="-10" max="10" step="0.5" value="0" inputmode="decimal"><span class="num-unit">m/s</span></div>
+                    </div>
+                </div>
+                <ol id="tramos" class="tramos" aria-label="Tramos del movimiento"></ol>
+                <button type="button" id="btn-add-tramo" class="small-btn">+ Añadir tramo</button>
+                <p class="field-hint" id="tramos-hint"></p>
+
+                <div class="reto-actions">
+                    <button type="button" id="btn-comprobar" class="primary-btn">▶ Comprobar</button>
+                    <button type="button" id="btn-pista" class="small-btn">Pista</button>
+                    <button type="button" id="btn-solucion" class="small-btn" hidden>Ver solución</button>
+                </div>
+                <p id="reto-pista" class="reto-pista" hidden></p>
+                <div id="reto-feedback" class="reto-feedback" role="status" hidden></div>
+            </section>
+
+            <!-- ═══ MODO MUÉVELO TÚ ═══ -->
+            <section class="control-group only-mano">
+                <h2>Muévelo tú</h2>
+                <p class="section-note" data-i18n="mano-instr">
+                    <strong>Arrastra</strong> el móvil por la pista con el ratón o el dedo: las gráficas se dibujan
+                    con tu movimiento durante 20 s. Con el teclado, pulsa la pista y usa las flechas
+                    <kbd>←</kbd> <kbd>→</kbd> (con <kbd>Mayús</kbd>, más deprisa).
+                </p>
+                <div class="input-wrapper">
+                    <label for="select-seguir">Gráfica que seguir</label>
+                    <select id="select-seguir" class="custom-select">
+                        <option value="0">Ninguna: muévete libremente</option>
+                        <option value="1">1. Espera, avanza y para</option>
+                        <option value="2">2. Ida y vuelta</option>
+                        <option value="3">3. Despacio, deprisa y vuelta</option>
+                    </select>
+                    <p class="field-hint" id="seguir-hint" hidden>Mantén el punto de tu gráfica x‑t dentro de la franja.</p>
+                </div>
+                <div class="card card-data seguir-card" id="seguir-card" hidden>
+                    <h3>Tiempo dentro de la franja</h3>
+                    <div class="metric"><span id="metric-seguir">0</span> <small>%</small></div>
+                </div>
+            </section>
+
+            <hr class="divider">
+
+            <!-- ═══ VER (común) ═══ -->
+            <section class="control-group">
+                <h2>Ver</h2>
+                <div class="input-wrapper">
+                    <span class="field-label" id="lbl-graficas">Gráficas</span>
+                    <div class="check-inline" role="group" aria-labelledby="lbl-graficas">
+                        <label class="check-row" for="check-gx"><input type="checkbox" id="check-gx" checked><span class="mag-x">x‑t</span></label>
+                        <label class="check-row" for="check-gv"><input type="checkbox" id="check-gv" checked><span class="mag-v">v‑t</span></label>
+                        <label class="check-row" for="check-ga"><input type="checkbox" id="check-ga"><span class="mag-a">a‑t</span></label>
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <span class="field-label" id="lbl-movil">Móvil</span>
+                    <div class="seg-control seg-2" role="radiogroup" aria-labelledby="lbl-movil">
+                        <button type="button" id="movil-coche" class="seg-btn seg-txt active" role="radio" aria-checked="true">Coche</button>
+                        <button type="button" id="movil-persona" class="seg-btn seg-txt" role="radio" aria-checked="false">Persona</button>
+                    </div>
+                </div>
+                <label class="check-row" for="check-marcas">
+                    <input type="checkbox" id="check-marcas" checked>
+                    <span>Marcas cada segundo</span>
+                </label>
+                <label class="check-row" for="check-pendiente">
+                    <input type="checkbox" id="check-pendiente">
+                    <span>Pendiente de x‑t (velocidad)</span>
+                </label>
+                <label class="check-row" for="check-area">
+                    <input type="checkbox" id="check-area">
+                    <span>Área bajo v‑t (desplazamiento)</span>
+                </label>
+                <label class="check-row" for="check-anterior">
+                    <input type="checkbox" id="check-anterior" checked>
+                    <span>Dejar la anterior (en gris)</span>
+                </label>
+                <label class="check-row" for="check-pausar">
+                    <input type="checkbox" id="check-pausar">
+                    <span>Pausar en los momentos clave (se para o cambia de sentido)</span>
+                </label>
+            </section>
+
+            <hr class="divider">
+
+            <!-- DATOS EN TIEMPO REAL -->
+            <details class="custom-details" open>
+                <summary>Datos en el instante del cursor</summary>
+                <div class="details-content metrics-content">
+                    <div class="metrics-grid">
+                        <div class="card card-data">
+                            <h3>Tiempo</h3>
+                            <div class="metric"><span id="metric-t">0,0</span> <small>s</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Posición</h3>
+                            <div class="metric mag-x"><span id="metric-x">0,0</span> <small>m</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Velocidad</h3>
+                            <div class="metric mag-v"><span id="metric-v">0,0</span> <small>m/s</small></div>
+                            <div class="metric-sub" id="metric-kmh">0 km/h</div>
+                        </div>
+                        <div class="card card-data card-a">
+                            <h3>Aceleración</h3>
+                            <div class="metric mag-a"><span id="metric-a">0,0</span> <small>m/s²</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Distancia recorrida</h3>
+                            <div class="metric"><span id="metric-s">0,0</span> <small>m</small></div>
+                        </div>
+                        <div class="card card-data">
+                            <h3>Desplazamiento</h3>
+                            <div class="metric"><span id="metric-dx">0,0</span> <small>m</small></div>
+                        </div>
+                    </div>
+                    <p class="field-hint" data-i18n="hint-distancia">La <strong>distancia recorrida</strong> cuenta todos los metros andados; el <strong>desplazamiento</strong> es x − x₀ y solo mira dónde acaba. Son distintos cuando el móvil vuelve.</p>
+                </div>
+            </details>
+
+            <details class="custom-details" id="details-tabla">
+                <summary>Tabla de valores</summary>
+                <div class="details-content">
+                    <p class="field-hint">Valores en cada segundo del recorrido. Puedes pegarlos en una hoja de cálculo o dibujar la gráfica en papel.</p>
+                    <div class="tabla-wrap">
+                        <table class="tabla-valores" id="tabla-valores">
+                            <thead><tr><th scope="col">t (s)</th><th scope="col">x (m)</th><th scope="col">v (m/s)</th><th scope="col" class="col-a">a (m/s²)</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <button type="button" id="btn-copiar" class="small-btn">Copiar tabla</button>
+                </div>
+            </details>
+
+            <details class="custom-details only-explorar">
+                <summary>Ecuaciones del movimiento</summary>
+                <div class="details-content">
+                    <div class="card edu-card">
+                        <div class="formula-list" id="ecuaciones"></div>
+                    </div>
+                    <p class="field-hint" id="ecuaciones-nota"></p>
+                </div>
+            </details>
+
+            <details class="custom-details">
+                <summary>Ideas clave</summary>
+                <div class="details-content">
+                    <ul class="key-ideas">
+                        <li data-i18n="idea-grafica">Una gráfica <strong>no es la trayectoria</strong>: el móvil siempre va en línea recta, aunque la gráfica suba, baje o se curve.</li>
+                        <li data-i18n="idea-pendiente">En la x‑t, cuanto más <strong>inclinada</strong> está la línea, más rápido va el móvil. Horizontal: está parado.</li>
+                        <li data-i18n="idea-vt">En la v‑t, una línea horizontal es velocidad constante (MRU) y una línea inclinada, aceleración constante (MRUA).</li>
+                        <li data-i18n="idea-signo">Velocidad <strong>negativa</strong> significa que se mueve hacia el sentido negativo del eje, no que frene. Frena cuando v y a tienen signos contrarios.</li>
+                        <li data-i18n="idea-cero">Cuando cambia de sentido, la velocidad vale 0 un instante, pero <strong>la aceleración no tiene por qué ser 0</strong>.</li>
+                    </ul>
+                </div>
+            </details>
+
+        </aside>
+
+        <!-- ── PANEL DE SIMULACIÓN ───────────────────────────────── -->
+        <main class="simulation-panel">
+
+            <div class="sim-dock">
+                <div class="dock-group">
+                    <button id="btn-play" type="button" class="canvas-btn btn-play" aria-keyshortcuts="Space" title="Iniciar o pausar (barra espaciadora con la simulación seleccionada)"><span class="btn-ico" aria-hidden="true"></span><span class="btn-txt">Iniciar</span></button>
+                    <button id="btn-reiniciar" type="button" class="canvas-btn" aria-keyshortcuts="R" title="Volver al principio (tecla R)"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.6 2.2l1.5 4.3 4.2-1.6z"/></svg><span class="btn-txt">Reiniciar</span></button>
+                </div>
+                <div class="dock-group">
+                    <span class="dock-label" id="lbl-velocidad" data-i18n="dock-vel">Velocidad</span>
+                    <div class="dock-seg" role="radiogroup" aria-labelledby="lbl-velocidad">
+                        <button type="button" class="dock-seg-btn" data-speed="0.5" role="radio" aria-checked="false" aria-label="Velocidad ×½">×½</button>
+                        <button type="button" class="dock-seg-btn active" data-speed="1" role="radio" aria-checked="true" aria-label="Velocidad ×1">×1</button>
+                        <button type="button" class="dock-seg-btn" data-speed="2" role="radio" aria-checked="false" aria-label="Velocidad ×2">×2</button>
+                    </div>
+                </div>
+                <div class="dock-group dock-instante">
+                    <label class="dock-label" for="slider-instante">Instante</label>
+                    <input type="range" id="slider-instante" min="0" max="0" value="0" step="0.1" disabled>
+                    <span id="val-instante" class="value-badge">0,0 s</span>
+                </div>
+            </div>
+
+            <!-- Botón de tema -->
+            <button id="theme-btn" class="theme-btn" title="Cambiar tema" aria-label="Cambiar tema" aria-expanded="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58
+                    c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96
+                    c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84
+                    c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33
+                    c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58
+                    C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61
+                    l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94
+                    l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54
+                    c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32
+                    c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z
+                    M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                </svg>
+            </button>
+            <div id="theme-panel" class="theme-panel" aria-hidden="true">
+                <p class="theme-panel-title">Tema visual</p>
+                <div class="theme-options">
+                    <button class="theme-opt" data-theme="marca">
+                        <span class="theme-swatch marca-swatch"></span>SimulaCiencia
+                    </button>
+                    <button class="theme-opt active" data-theme="dark">
+                        <span class="theme-swatch dark-swatch"></span>Oscuro
+                    </button>
+                    <button class="theme-opt" data-theme="light">
+                        <span class="theme-swatch light-swatch"></span>Claro
+                    </button>
+                    <button class="theme-opt" data-theme="contrast">
+                        <span class="theme-swatch contrast-swatch"></span>Alto contraste
+                    </button>
+                </div>
+            </div>
+
+            <div id="canvas-container"></div>
+            <div id="anuncio" class="sr-only" aria-live="polite"></div>
+        </main>
+
+    </div>
+    <script src="js/parametros.js"></script>
+    <script src="js/movimiento.js"></script>
+    <script src="js/retos.js"></script>
+    <script src="js/sketch.js"></script>
+</body>
+</html>
